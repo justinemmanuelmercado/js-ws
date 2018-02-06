@@ -26,9 +26,11 @@ class Chat implements MessageComponentInterface {
         $user['from'] = $from;
         if($userInfo->type === 1){
             $toSendApplicant = [];
+            $toSendToBusiness = [];
             echo "Applicant";
             array_push($this->applicants, $user);
             foreach($this->businesses as $business){
+                $jobsToSend = [];
                 foreach($business['userInfo']->requirements as $job){
                     $score = 0;
                     $matchingSkills = [];
@@ -46,16 +48,22 @@ class Chat implements MessageComponentInterface {
                         }
                     }
                     if($score > 1){
-                        array_push($toSendApplicant, [
-                            'matchingSkills' => $matchingSkills,
-                            'business' => $business,
-                            'job' => $job
-                        ]);
+                        $job->matchingSkills = $matchingSkills;
+                        array_push($jobsToSend, $job);
                     }
                 }
+                array_push($toSendApplicant, [
+                    'business' => $business['userInfo'],
+                    'jobs' => $jobsToSend
+                ]);
+                $business['from']->send(json_encode([
+                    'messsage' => 'additionalMatchesBusiness',
+                    'user' => $userInfo,
+                    'jobMatch' => $jobsToSend
+                ]));
             }
             $from->send(json_encode([
-                'message' => 'newMatches',
+                'message' => 'newMatchesApplicant',
                 'matchesCount' => count($toSendApplicant),
                 'matches' => $toSendApplicant
             ]));
@@ -64,19 +72,56 @@ class Chat implements MessageComponentInterface {
         if($userInfo->type === 2){
             echo "Business";
             array_push($this->businesses, $user);
+            $toSendBusiness = [];
             foreach($this->applicants as $applicant){
-                $applicant['from']->send(json_encode($userInfo));
+                $jobMatches = [];
+                foreach($userInfo->requirements as $job){
+                    $score = 0;
+                    $matchingSkills = [];
+                    foreach($applicant['userInfo']->requirements as $skill){
+                        foreach($job->jobRequirements as $jr){
+                            if($skill->skill === $jr->requirement && $skill->years_exp >= $jr->years_exp){
+                                $score++;
+                                array_push($matchingSkills, [
+                                    'jSkill' => $jr->requirement,
+                                    'aSkill' => $skill->skill,
+                                    'jYears' => $jr->years_exp,
+                                    'aYears' => $skill->years_exp
+                                ]);
+                            }
+                        }
+                    }
+                    if($score > 1){
+                        array_push($jobMatches, [
+                            'job' => $job,
+                            'matchingSkills' => $matchingSkills
+                        ]);
+                    }
+                }
+                array_push($toSendBusiness, [
+                    'applicant' => $applicant,
+                    'jobMatch' => $jobMatches
+                ]);
+                $applicant['from']->send(json_encode([
+                    'message' => 'additionalMatchesApplicant',
+                    'jobMatches' => $jobMatches,
+                    'business' => $user
+                ]));
             }
+            $from->send(json_encode([
+                'message' => 'newMatchesBusiness',
+                'matches' => $toSendBusiness,
+                ]));
         }
     }
 
     public function onClose(ConnectionInterface $conn) {
-        // The connection is closed, remove it, as we can no longer send it messages
+
         $this->clients->detach($conn);
         foreach ($this->applicants as $inda => $a){
             if($a['from'] === $conn){
                 unset($this->applicants[$inda]);
-                echo "Successfully unset $applicants index {" . $inda . "} \n";       
+                echo "Successfully unset applicants index {" . $inda . "} \n";       
                 echo "\n";       
             }
         }
@@ -84,8 +129,9 @@ class Chat implements MessageComponentInterface {
         foreach ($this->businesses as $indb => $b){
             if($b['from'] === $conn){
                 unset($this->businesses[$indb]);
+                echo count($this->businesses);
                 echo "Successfully unset businesses index {" . $indb . "} \n";
-                echo "\n";       
+                echo "\n";
             }
         }
 
