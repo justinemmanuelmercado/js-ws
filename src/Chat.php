@@ -91,11 +91,9 @@ class Chat implements MessageComponentInterface {
                             }
                         }
                     }
+                    $job->matchingSkills = $matchingSkills;
                     if($score > 1){
-                        array_push($jobMatches, [
-                            'job' => $job,
-                            'matchingSkills' => $matchingSkills
-                        ]);
+                        array_push($jobMatches, $job);
                     }
                 }
                 array_push($toSendBusiness, [
