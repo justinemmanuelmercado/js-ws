@@ -47,7 +47,7 @@ class Chat implements MessageComponentInterface {
                             }
                         }
                     }
-                    if($score > 1){
+                    if($score > 0){
                         $job->matchingSkills = $matchingSkills;
                         array_push($jobsToSend, $job);
                     }
@@ -92,7 +92,7 @@ class Chat implements MessageComponentInterface {
                         }
                     }
                     $job->matchingSkills = $matchingSkills;
-                    if($score > 1){
+                    if($score > 0){
                         array_push($jobMatches, $job);
                     }
                 }
