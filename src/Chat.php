@@ -96,10 +96,12 @@ class Chat implements MessageComponentInterface {
                         array_push($jobMatches, $job);
                     }
                 }
-                array_push($toSendBusiness, [
-                    'applicant' => $applicant,
-                    'jobMatch' => $jobMatches
-                ]);
+                if(count($jobMatches) > 0){
+                    array_push($toSendBusiness, [
+                        'applicant' => $applicant,
+                        'jobMatch' => $jobMatches
+                    ]);
+                }
                 $applicant['from']->send(json_encode([
                     'message' => 'additionalMatchesApplicant',
                     'jobMatches' => $jobMatches,
